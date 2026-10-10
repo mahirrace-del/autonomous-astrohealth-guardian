@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astronaut Health Monitoring Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js">
+        async function askHuskyLens() {
+            const query = document.getElementById('vision-query').value;
+            const mode = document.getElementById('huskylens-mode').value;
+            const answerDiv = document.getElementById('vision-answer');
+            
+            if(!query) return;
+            
+            answerDiv.innerHTML = '<i>Processing image and querying Gemini AI... (this may take a few seconds)</i>';
+            answerDiv.style.color = '#fff';
+            
+            try {
+                const res = await fetch('http://localhost:8000/api/vision/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query: query, algorithm: mode})
+                });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    answerDiv.innerHTML = '<b>Xiaozhi AI:</b> ' + data.answer;
+                    answerDiv.style.color = '#00ff88';
+                } else {
+                    answerDiv.innerHTML = '<b>Error:</b> ' + data.message;
+                    answerDiv.style.color = '#ff4444';
+                }
+            } catch (e) {
+                answerDiv.innerHTML = '<b>Connection Error:</b> Failed to connect to server.';
+                answerDiv.style.color = '#ff4444';
+            }
+        }
+    
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="top-bar">
+            <div class="logo">
+                <span class="highlight">A.H.M.</span> SYSTEM
+            </div>
+            <div class="status-indicators">
+                <div class="badge simulation-badge">SIMULATED TELEMETRY</div>
+                <div class="badge connection-badge" id="ws-status">Connecting...</div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <main class="dashboard-grid">
+            
+            <!-- Vitals Panel (Left) -->
+            <section class="panel vitals-panel glass">
+                <h2 class="panel-title">LIVE BIOMETRICS</h2>
+                
+                <div class="vital-card" id="card-hr">
+                    <div class="vital-label">Heart Rate (bpm)</div>
+                    <div class="vital-value" id="val-hr">--</div>
+                    <div class="vital-trend">Normal Range: 60 - 80</div>
+                </div>
+
+                <div class="vital-card" id="card-spo2">
+                    <div class="vital-label">Blood Oxygen (SpO2)</div>
+                    <div class="vital-value" id="val-spo2">--%</div>
+                    <div class="vital-trend">Normal Range: > 96%</div>
+                </div>
+
+                <div class="vital-card" id="card-hrv">
+                    <div class="vital-label">HRV (ms)</div>
+                    <div class="vital-value" id="val-hrv">--</div>
+                    <div class="vital-trend">Normal Range: > 50</div>
+                </div>
+            </section>
+
+            <!-- Center Panel (Charts & Vision) -->
+            <section class="center-panel">
+                <div class="panel chart-panel glass">
+                    <h2 class="panel-title">TELEMETRY STREAM</h2>
+                    <div class="chart-container">
+                        <canvas id="telemetryChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- HuskyLens Data -->
+                <div class="panel vision-panel glass">
+                    <h2 class="panel-title">HUSKYLENS 2 VISION SENSOR</h2>
+                    
+                    <!-- Live Camera Feed -->
+                    <div class="live-feed-container" style="margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); background: #000; position: relative;">
+                        <div style="position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.8); color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; animation: blink 2s infinite;">LIVE</div>
+                        <img id="live-feed" src="http://localhost:8000/api/vision/feed" alt="Live HuskyLens Feed" style="width: 100%; display: block; min-height: 200px; object-fit: cover;">
+                    </div>
+                    
+                    <div class="vision-grid">
+                        <div class="vision-stat">
+                            <span class="vision-label">Expression:</span>
+                            <span class="vision-val" id="val-expression">NEUTRAL</span>
+                        </div>
+                        <div class="vision-stat">
+                            <span class="vision-label">Posture Score:</span>
+                            <span class="vision-val" id="val-posture">1.00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- New AI Chat Interface -->
+                    <div class="vision-chat">
+                        <div class="chat-log" id="chat-log">
+                            <div class="chat-msg system">HuskyLens AI initialized over Wi-Fi. Ready for queries.</div>
+                        </div>
+                        <div class="chat-input-row" style="display:flex; gap:10px;">
+                            <select id="chat-mode" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 12px; outline: none; flex-shrink: 0;">
+                                <option value="Facial Expression Recognition">Facial Expression Recognition</option>
+                                <option value="Fall Detection">Fall Detection</option>
+                                <option value="Face Recognition">Face Recognition</option>
+                                <option value="Object Recognition">Object Recognition</option>
+                            </select>
+                            <input type="text" id="chat-input" placeholder="Ask Xiaozhi (e.g. Is the astronaut sleeping?)" style="flex-grow: 1;">
+                            <button id="chat-submit" style="flex-shrink: 0;">ASK</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Agent Explainer Drawer (Right) -->
+            <section class="panel explainer-panel glass">
+                <h2 class="panel-title">AI SCIENCE AGENT</h2>
+                <div class="explainer-content" id="explainer-content">
+                    <div class="idle-state">
+                        <div class="pulse-ring"></div>
+                        <p>Monitoring telemetry for deviations...</p>
+                        
+                        <!-- Autonomous Status Display -->
+                        <div style="margin-top: 20px; text-align: left; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border-left: 3px solid #00ff88;">
+                            <div style="font-size: 11px; color: #34d399; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">AUTONOMOUS AI LOG</div>
+                            <div id="autonomous-log" style="color: #fff; font-size: 14px; font-family: 'Share Tech Mono', monospace; line-height: 1.4;">Initializing autonomous AI monitoring...</div>
+                        </div>
+                    </div>
+                    <!-- Hidden Alert State -->
+                    <div class="alert-state hidden" id="alert-state">
+                        <div class="alert-header">⚠️ ANOMALY DETECTED</div>
+                        <div class="alert-body" id="alert-text"></div>
+                        
+                        <div class="provenance-box">
+                            <h4>DATA PROVENANCE</h4>
+                            <p><strong>Source:</strong> NASA Open Science Data Repository (OSDR)</p>
+                            <p><strong>Study ID:</strong> OSD-87</p>
+                            <a href="https://osdr.nasa.gov/osdr/data/osd/files/87.1" target="_blank" class="nasa-link">View Original Study</a>
+                        </div>
+                        
+                        <button id="ack-button" style="margin-top: 15px; width: 100%; background: #ef4444; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;">ACKNOWLEDGE & CLEAR</button>
+                    </div>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+    
+    <script src="app.js">
+        async function askHuskyLens() {
+            const query = document.getElementById('vision-query').value;
+            const mode = document.getElementById('huskylens-mode').value;
+            const answerDiv = document.getElementById('vision-answer');
+            
+            if(!query) return;
+            
+            answerDiv.innerHTML = '<i>Processing image and querying Gemini AI... (this may take a few seconds)</i>';
+            answerDiv.style.color = '#fff';
+            
+            try {
+                const res = await fetch('http://localhost:8000/api/vision/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query: query, algorithm: mode})
+                });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    answerDiv.innerHTML = '<b>Xiaozhi AI:</b> ' + data.answer;
+                    answerDiv.style.color = '#00ff88';
+                } else {
+                    answerDiv.innerHTML = '<b>Error:</b> ' + data.message;
+                    answerDiv.style.color = '#ff4444';
+                }
+            } catch (e) {
+                answerDiv.innerHTML = '<b>Connection Error:</b> Failed to connect to server.';
+                answerDiv.style.color = '#ff4444';
+            }
+        }
+    
+    </script>
+</body>
+</html>
